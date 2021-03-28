@@ -18,22 +18,21 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdL
     WNDCLASSEXW wcex;
 
     wcex.cbSize = sizeof(WNDCLASSEX);
-
     wcex.style = CS_HREDRAW | CS_VREDRAW;
     wcex.lpfnWndProc = WndProc;
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;
     wcex.hInstance = hInstance;
-    wcex.hIcon = (HICON)LoadImage(nullptr, IDI_APPLICATION, IMAGE_ICON, 0, 0, LR_SHARED);
+    wcex.hIcon = LoadIcon(nullptr, IDI_WINLOGO);
     wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName = nullptr;
     wcex.lpszClassName = szTitle.data();
-    wcex.hIconSm = (HICON)LoadImage(nullptr, IDI_APPLICATION, IMAGE_ICON, 0, 0, LR_SHARED);
+    wcex.hIconSm = LoadIcon(nullptr, IDI_WINLOGO);
 
     RegisterClassExW(&wcex);
 
-    HWND hWnd = CreateWindow(szTitle.data(), szTitle.data(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, 0, 500, 200, nullptr, nullptr, hInstance, nullptr);
+    HWND hWnd = CreateWindow(szTitle.data(), szTitle.data(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 550, 200, nullptr, nullptr, hInstance, nullptr);
     if (hWnd == nullptr)
     {
         return 1;
@@ -56,8 +55,32 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdL
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    static HWND hEditSidToName = nullptr;
+    static HWND hEditNameToSid = nullptr;
+
     switch (message)
     {
+    case WM_CREATE:
+    {
+        hEditSidToName = CreateWindowEx(
+            WS_EX_CLIENTEDGE,
+            _T("EDIT"),
+            _T(""),
+            WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL | WS_TABSTOP, 30, 30, 200, 30,
+            hWnd,
+            (HMENU)IDC_EDIT_SIDTONAME, ((LPCREATESTRUCT)lParam)->hInstance, nullptr);
+
+        hEditNameToSid = CreateWindowEx(
+            WS_EX_CLIENTEDGE,
+            _T("EDIT"),
+            _T(""),
+            WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL | WS_TABSTOP, 300, 30, 200, 30,
+            hWnd,
+            (HMENU)IDC_EDIT_NAMETOSID, ((LPCREATESTRUCT)lParam)->hInstance, nullptr);
+
+        SetFocus(hEditSidToName);
+        break;
+    }
     case WM_COMMAND:
     {
         int wmId = LOWORD(wParam);
