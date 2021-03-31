@@ -2,10 +2,13 @@
 #include <tchar.h>
 #include "resource.h"
 #include <vector>
+#include <string>
 
+using tstring = std::basic_string<TCHAR>;
 constexpr size_t MAX_LOADSTRING = 100;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+tstring GetFromStringTable(UINT resourceId);
 
 int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
@@ -58,6 +61,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     static HWND hEditSidToName = nullptr;
     static HWND hEditNameToSid = nullptr;
 
+    static HWND hBtnSidToName = nullptr;
+    static HWND hBtnNameToSid = nullptr;
+
     switch (message)
     {
     case WM_CREATE:
@@ -78,6 +84,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             hWnd,
             (HMENU)IDC_EDIT_NAMETOSID, ((LPCREATESTRUCT)lParam)->hInstance, nullptr);
 
+        hBtnSidToName = CreateWindowEx(
+            WS_EX_CLIENTEDGE,
+            _T("BUTTON"),
+            GetFromStringTable(IDS_BTN_SIDTONAME_LABEL).c_str(),
+            WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 30, 80, 200, 30, hWnd,
+            (HMENU)IDC_BTN_SIDTONAME, ((LPCREATESTRUCT)lParam)->hInstance, nullptr);
+
+        hBtnNameToSid = CreateWindowEx(
+            WS_EX_CLIENTEDGE,
+            _T("BUTTON"),
+            GetFromStringTable(IDS_BTN_NAMETOSID).c_str(),
+            WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 300, 80, 200, 30, hWnd,
+            (HMENU)IDC_BTN_NAMETOSID, ((LPCREATESTRUCT)lParam)->hInstance, nullptr);
+
         SetFocus(hEditSidToName);
         break;
     }
@@ -86,6 +106,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         int wmId = LOWORD(wParam);
         switch (wmId)
         {
+        case IDC_BTN_SIDTONAME:
+        {
+            OutputDebugString(_T("SID to ユーザー名\n"));
+            break;
+        }
+        case IDC_BTN_NAMETOSID:
+        {
+            OutputDebugString(_T("ユーザー名 to SID\n"));
+            break;
+        }
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
         }
@@ -100,4 +130,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         return DefWindowProc(hWnd, message, wParam, lParam);
     }//switch (message)
     return 0;
+}
+
+tstring GetFromStringTable(UINT resourceId)
+{
+    constexpr auto size = 256;
+    std::vector<TCHAR> szResource(size);
+    LoadString(GetModuleHandle(nullptr), resourceId, szResource.data(), szResource.size());
+    return tstring(szResource.data());
 }

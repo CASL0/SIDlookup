@@ -53,6 +53,8 @@ END
 STRINGTABLE
 BEGIN
     IDS_APP_TITLE           "SID Lookup"
+    IDS_BTN_SIDTONAME_LABEL "SID → ユーザー名"
+    IDS_BTN_NAMETOSID       "SID ← ユーザー名"
 END
 
 #endif    // 日本語 (日本) resources
