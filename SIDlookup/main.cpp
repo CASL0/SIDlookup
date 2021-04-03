@@ -13,6 +13,7 @@ constexpr size_t MAX_LOADSTRING = 100;
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 tstring GetFromStringTable(UINT resourceId);
 tstring NameToSid(const tstring& sName);
+tstring SidToName(const tstring& sSid);
 
 int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
@@ -112,7 +113,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
         case IDC_BTN_SIDTONAME:
         {
-            OutputDebugString(_T("SID to ÉÜÅ[ÉUÅ[ñº\n"));
+            tstring sName;
+            try
+            {
+                constexpr size_t BUFFER_LENGTH = 256;
+                std::vector<TCHAR> szInputSid(BUFFER_LENGTH);
+                GetWindowText(hEditSidToName, szInputSid.data(), szInputSid.size());
+                sName = SidToName(szInputSid.data());
+            }
+            catch (...)
+            {
+                //not found
+                return 0;
+            }
+            SetWindowText(hEditNameToSid, sName.c_str());
             break;
         }
         case IDC_BTN_NAMETOSID:
@@ -122,7 +136,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
                 constexpr size_t BUFFER_LENGTH = 256;
                 std::vector<TCHAR> szInputName(BUFFER_LENGTH);
-                GetWindowText(hEditNameToSid, szInputName.data(), BUFFER_LENGTH);
+                GetWindowText(hEditNameToSid, szInputName.data(), szInputName.size());
                 sSid = NameToSid(szInputName.data());
             }
             catch (...)
@@ -187,4 +201,33 @@ tstring NameToSid(const tstring& sName)
     tstring sSid(szSid);
     LocalFree(szSid);
     return sSid;
+}
+
+tstring SidToName(const tstring& sSid)
+{
+    std::shared_ptr<PSID> ppSid(new PSID, LocalFree);
+    BOOL bRet = ConvertStringSidToSid(sSid.c_str(), ppSid.get());
+    if (!bRet)
+    {
+        std::string sErrorMsg = std::string("ConvertStringSidToSid failed with error: " + std::to_string(GetLastError()));
+        throw std::exception(sErrorMsg.c_str());
+    }
+
+    DWORD dwSizeName = 0;
+    std::vector<TCHAR> szDomainName(256);
+    DWORD dwSizeDomain = szDomainName.size();
+    SID_NAME_USE sidName;
+    LookupAccountSid(nullptr, *ppSid, nullptr, &dwSizeName, szDomainName.data(), &dwSizeDomain, &sidName);
+
+    std::vector<TCHAR> szName(dwSizeName);
+    bRet = LookupAccountSid(nullptr, *ppSid, szName.data(), &dwSizeName, szDomainName.data(), &dwSizeDomain, &sidName);
+    if (!bRet)
+    {
+        std::string sErrorMsg = std::string("LookupAccountSid failed with error: " + std::to_string(GetLastError()));
+        throw std::exception(sErrorMsg.c_str());
+    }
+
+    tstring sDomain(szDomainName.data());
+    tstring sName(szName.data());
+    return sDomain + _T("\\") + sName;
 }
