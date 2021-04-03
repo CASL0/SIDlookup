@@ -1,11 +1,16 @@
 #include <Windows.h>
 #include <tchar.h>
 #include <sddl.h>
+#include <commctrl.h>
 #include "resource.h"
 #include <vector>
 #include <string>
 #include <exception>
 #include <memory>
+
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 using tstring = std::basic_string<TCHAR>;
 constexpr size_t MAX_LOADSTRING = 100;
@@ -104,6 +109,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             (HMENU)IDC_BTN_NAMETOSID, ((LPCREATESTRUCT)lParam)->hInstance, nullptr);
 
         SetFocus(hEditSidToName);
+        SendMessage(hEditSidToName, EM_SETCUEBANNER, 1, (LPARAM)_T("S-1-5-18"));
+        SendMessage(hEditNameToSid, EM_SETCUEBANNER, 1, (LPARAM)_T("NT AUTHORITY\\SYSTEM"));
+
         break;
     }
     case WM_COMMAND:
