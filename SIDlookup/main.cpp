@@ -1,14 +1,18 @@
 #include <Windows.h>
 #include <tchar.h>
+#include <sddl.h>
 #include "resource.h"
 #include <vector>
 #include <string>
+#include <exception>
+#include <memory>
 
 using tstring = std::basic_string<TCHAR>;
 constexpr size_t MAX_LOADSTRING = 100;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 tstring GetFromStringTable(UINT resourceId);
+tstring NameToSid(const tstring& sName);
 
 int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
@@ -113,7 +117,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         case IDC_BTN_NAMETOSID:
         {
-            OutputDebugString(_T("ÉÜÅ[ÉUÅ[ñº to SID\n"));
+            tstring sSid;
+            try
+            {
+                constexpr size_t BUFFER_LENGTH = 256;
+                std::vector<TCHAR> szInputName(BUFFER_LENGTH);
+                GetWindowText(hEditNameToSid, szInputName.data(), BUFFER_LENGTH);
+                sSid = NameToSid(szInputName.data());
+            }
+            catch (...)
+            {
+                //not found
+                return 0;
+            }
+            SetWindowText(hEditSidToName, sSid.c_str());
             break;
         }
         default:
@@ -138,4 +155,36 @@ tstring GetFromStringTable(UINT resourceId)
     std::vector<TCHAR> szResource(size);
     LoadString(GetModuleHandle(nullptr), resourceId, szResource.data(), szResource.size());
     return tstring(szResource.data());
+}
+
+tstring NameToSid(const tstring& sName)
+{
+    constexpr size_t DOMAIN_BUFFER_SIZE = 256;
+    std::vector<TCHAR> szDomainName(DOMAIN_BUFFER_SIZE);
+    DWORD dwSizeDomain = szDomainName.size();
+    DWORD dwSizeSid = 0;
+    SID_NAME_USE sidName;
+
+    BOOL bRet;
+    LookupAccountName(nullptr, sName.c_str(), nullptr, &dwSizeSid, szDomainName.data(), &dwSizeDomain, &sidName);
+
+    std::shared_ptr<std::remove_pointer<PSID>::type> pSid((PSID)LocalAlloc(LPTR, dwSizeSid), LocalFree);
+    bRet = LookupAccountName(nullptr, sName.c_str(), pSid.get(), &dwSizeSid, szDomainName.data(), &dwSizeDomain, &sidName);
+    if (!bRet)
+    {
+        std::string sErrorMsg = std::string("LookupAccountName failed with error: " + std::to_string(GetLastError()));
+        throw std::exception(sErrorMsg.c_str());
+    }
+
+    LPTSTR szSid;
+    bRet = ConvertSidToStringSid(pSid.get(), &szSid);
+    if (!bRet)
+    {
+        std::string sErrorMsg = std::string("ConvertSidToStringSid failed with error: " + std::to_string(GetLastError()));
+        throw std::exception(sErrorMsg.c_str());
+    }
+    
+    tstring sSid(szSid);
+    LocalFree(szSid);
+    return sSid;
 }
